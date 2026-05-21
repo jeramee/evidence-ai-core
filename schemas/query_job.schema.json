@@ -1,15 +1,90 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "query_job",
-  "type": "object",
+  "properties": {
+    "authority_flags": {
+      "additionalProperties": false,
+      "properties": {
+        "correctness_proven": {
+          "const": false
+        },
+        "repo_mutated": {
+          "const": false
+        },
+        "source_control_touched": {
+          "const": false
+        },
+        "state_promoted": {
+          "const": false
+        }
+      },
+      "required": [
+        "correctness_proven",
+        "repo_mutated",
+        "state_promoted",
+        "source_control_touched"
+      ],
+      "type": "object"
+    },
+    "created_at": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "input_refs": {
+      "items": {
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "job_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "job_kind": {
+      "type": "string"
+    },
+    "packet_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "query_job"
+    },
+    "request_text": {
+      "type": "string"
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
   "required": [
     "schema_version",
     "record_type",
-    "packet_id"
+    "packet_id",
+    "job_id",
+    "created_at",
+    "request_text",
+    "input_refs",
+    "authority_flags",
+    "status"
   ],
-  "properties": {
-    "record_type": {
-      "const": "query_job"
-    }
-  }
+  "title": "query_job",
+  "type": "object"
 }

@@ -1,15 +1,63 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "environment_report",
-  "type": "object",
+  "properties": {
+    "captured_at": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "environment_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "environment_status": {
+      "type": "string"
+    },
+    "environment_variables": {
+      "type": "object"
+    },
+    "packages": {
+      "type": "array"
+    },
+    "packet_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "platform": {
+      "type": "object"
+    },
+    "python": {
+      "type": "object"
+    },
+    "raw_environment_dumped": {
+      "const": false
+    },
+    "record_type": {
+      "const": "environment_report"
+    },
+    "redaction_status": {
+      "const": "allowlist_only"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "warnings": {
+      "type": "array"
+    },
+    "working_directory": {
+      "type": "string"
+    }
+  },
   "required": [
     "schema_version",
     "record_type",
-    "packet_id"
+    "packet_id",
+    "environment_id",
+    "captured_at",
+    "platform",
+    "python",
+    "raw_environment_dumped",
+    "redaction_status"
   ],
-  "properties": {
-    "record_type": {
-      "const": "environment_report"
-    }
-  }
+  "title": "environment_report",
+  "type": "object"
 }
