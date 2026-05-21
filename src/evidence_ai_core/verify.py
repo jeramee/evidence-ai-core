@@ -6,9 +6,17 @@ from typing import Any
 
 from .constants import (
     AUTHORITY_FLAGS,
+    CHECK_STATUS_FAILED,
+    CHECK_STATUS_PASSED,
     EXPECTED_RECORD_TYPES,
     JSON_ARTIFACTS,
     REQUIRED_ARTIFACTS,
+    VERIFICATION_AUTHORITY_NOTE,
+    VERIFICATION_LIMITATIONS,
+    VERIFICATION_RESULT_RECORD_TYPE,
+    VERIFICATION_SCOPE,
+    VERIFICATION_STATUS_FAILED,
+    VERIFICATION_STATUS_PASSED,
 )
 from .hashes import sha256_file
 
@@ -86,6 +94,12 @@ REQUIRED_FIELDS_BY_ARTIFACT: dict[str, tuple[str, ...]] = {
 
 
 def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
+    """Verify static packet mechanics and return a stable result contract.
+
+    Verification is limited to artifact shape, parseability, required fields,
+    packet linkage, conservative authority flags, and manifest hash checks. It
+    is not scientific validation and does not execute external work.
+    """
     packet_dir = Path(packet_dir)
 
     checks: list[dict[str, Any]] = []
@@ -95,11 +109,11 @@ def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
     def add(check_id: str, status: str, details: list[str] | None = None) -> None:
         details = details or []
         checks.append({"check_id": check_id, "status": status, "details": details})
-        if status == "failed":
+        if status == CHECK_STATUS_FAILED:
             errors.extend(details)
 
     missing = [name for name in REQUIRED_ARTIFACTS if not (packet_dir / name).exists()]
-    add("required_files_exist", "failed" if missing else "passed", missing)
+    add("required_files_exist", CHECK_STATUS_FAILED if missing else CHECK_STATUS_PASSED, missing)
 
     parsed: dict[str, dict[str, Any]] = {}
     json_errors: list[str] = []
@@ -121,7 +135,7 @@ def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
 
         parsed[name] = loaded
 
-    add("json_files_parse", "failed" if json_errors else "passed", json_errors)
+    add("json_files_parse", CHECK_STATUS_FAILED if json_errors else CHECK_STATUS_PASSED, json_errors)
 
     field_errors: list[str] = []
     for name, record in parsed.items():
@@ -141,7 +155,7 @@ def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
                 f"got {record.get('record_type')!r}"
             )
 
-    add("required_fields_present", "failed" if field_errors else "passed", field_errors)
+    add("required_fields_present", CHECK_STATUS_FAILED if field_errors else CHECK_STATUS_PASSED, field_errors)
 
     packet_ids = sorted(
         {
@@ -152,8 +166,8 @@ def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
     )
     add(
         "packet_id_consistent",
-        "failed" if len(packet_ids) > 1 else "passed",
-        packet_ids,
+        CHECK_STATUS_FAILED if len(packet_ids) > 1 else CHECK_STATUS_PASSED,
+        packet_ids if len(packet_ids) > 1 else [],
     )
 
     escalation_errors: list[str] = []
@@ -177,7 +191,7 @@ def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
 
     add(
         "authority_flags_not_escalated",
-        "failed" if escalation_errors else "passed",
+        CHECK_STATUS_FAILED if escalation_errors else CHECK_STATUS_PASSED,
         escalation_errors,
     )
 
@@ -218,7 +232,7 @@ def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
             if actual_hash != expected_hash:
                 hash_errors.append(f"{rel_path}: hash mismatch")
 
-    add("artifact_hashes_match", "failed" if hash_errors else "passed", hash_errors)
+    add("artifact_hashes_match", CHECK_STATUS_FAILED if hash_errors else CHECK_STATUS_PASSED, hash_errors)
 
     if parsed.get("source_citations.json"):
         warnings.append("Citation support was not evaluated.")
@@ -226,15 +240,22 @@ def verify_packet(packet_dir: str | Path) -> dict[str, Any]:
     if parsed.get("replay_manifest.json", {}).get("replay_status") == "inspection_only":
         warnings.append("Replay is inspection-only.")
 
-    status = "passed_mechanical_checks" if not errors else "failed_mechanical_checks"
+    status = VERIFICATION_STATUS_PASSED if not errors else VERIFICATION_STATUS_FAILED
 
     return {
         "schema_version": "0.1",
-        "record_type": "verification_result",
+        "record_type": VERIFICATION_RESULT_RECORD_TYPE,
         "packet_id": packet_ids[0] if len(packet_ids) == 1 else None,
+        "packet_dir": str(packet_dir),
         "verification_status": status,
+        "verification_scope": VERIFICATION_SCOPE,
         "checks": checks,
+        "check_count": len(checks),
         "errors": errors,
+        "error_count": len(errors),
         "warnings": warnings,
-        "authority_note": "Mechanical verification is not scientific validation.",
+        "warning_count": len(warnings),
+        "authority_flags": dict(AUTHORITY_FLAGS),
+        "authority_note": VERIFICATION_AUTHORITY_NOTE,
+        "limitations": list(VERIFICATION_LIMITATIONS),
     }

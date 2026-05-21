@@ -1,129 +1,84 @@
-# evidenceai-core
+# evidence-ai-core
 
-**Evidence packets for reproducible scientific RAG with `txtai`, `paperetl`, and `paperai`.**
+Static/local evidence packet core for reproducible scientific RAG and AI-assisted research workflows.
 
-`evidenceai-core` is a proposed provenance and evidence-packet layer for the NeuML ecosystem. It records what happened during an AI-assisted research run: what was requested, what was retrieved, what sources were cited, what context was assembled, what execution step occurred, what environment produced the output, what artifacts were generated, and what replay instructions exist.
-
-Its core rule is simple:
+Core rule:
 
 > Evidence is not proof.
 
-This project is designed to sit underneath higher-level tools. It is not a replacement for `txtai`, `paperetl`, `paperai`, notebooks, reports, peer review, or scientific judgment.
+`evidence-ai-core` creates, reads, summarizes, verifies, exports, previews, safely imports, roundtrip-checks, and inventories local evidence packets. It is a low-level packet and contract layer. It does **not** execute notebooks, call models, run retrieval systems, mutate source control, promote state, or validate scientific truth.
 
----
+## Project identity
 
-## Why this belongs in the NeuML stack
+| Field | Value |
+|---|---|
+| Repo | `evidence-ai-core` |
+| Python package | `evidence_ai_core` |
+| CLI | `evidence-ai-core` |
+| Product role | Low-level evidence packet core |
+| Boundary | Static/local packet creation, reading, summaries, schemas, manifests, ZIP export/import mechanics, ZIP roundtrip contracts, bundle inventory/filtering/sorting, and mechanical checks |
 
-NeuML already has a strong AI research stack:
+## What this package owns
 
-| Project | Existing role | Where `evidenceai-core` fits |
-|---|---|---|
-| [`txtai`](https://github.com/neuml/txtai) | Semantic search, embeddings, RAG, LLM orchestration, workflows, agents, and APIs | Supplies retrieval events, index references, query metadata, and context records |
-| [`paperetl`](https://github.com/neuml/paperetl) | ETL for medical and scientific papers, including PDF/XML/CSV-style inputs | Supplies structured source metadata, source identifiers, source hashes, and citation locators |
-| [`paperai`](https://github.com/neuml/paperai) | Semantic search and AI workflows for medical/scientific papers | Supplies generated reports, answer tables, and paper-level evidence artifacts |
-| `evidenceai-core` | Evidence packet model, schemas, verifier, authority vocabulary, replay metadata | Packages the evidence trail without claiming that the result is scientifically proven |
+- Static/local evidence packet creation.
+- The minimum evidence packet artifact set.
+- Conservative authority flags.
+- Mechanical packet verification.
+- Static JSON Schema contract discovery.
+- Read-only packet loading.
+- Read-only packet summaries.
+- Manifest and artifact hash summaries.
+- Stable CLI JSON output.
+- Static packet ZIP export.
+- Preview-only packet ZIP import inspection.
+- Safe packet ZIP extraction under an explicit output root.
+- Static packet ZIP roundtrip contract tests.
+- Static packet bundle inventory for local packet folders and packet ZIPs.
+- Inventory filtering by candidate kind and status.
+- Deterministic inventory sorting.
+- Stable package-owned error classes.
 
-The current gap is not answer generation. The gap is durable evidence preservation.
+## What this package does not own
 
-A RAG answer is not enough.  
-A citation list is not enough.  
-A notebook run is not enough.  
-A rendered report is not enough.
+- Notebook execution.
+- Papermill execution.
+- Quarto rendering.
+- `txtai` execution.
+- `paperetl` execution.
+- `paperai` execution.
+- Model calls.
+- Network calls.
+- Source-control mutation.
+- RunLab behavior.
+- TraceLab behavior.
+- Lab/instrument orchestration.
+- Scientific validation.
+- Promotion authority.
 
-A serious scientific RAG workflow should preserve the path from request to result.
+Higher-level products may use this package later, but this package remains the static evidence-packet core.
 
----
+## Required packet artifacts
 
-## What this is
-
-`evidenceai-core` is the small, reusable evidence/provenance core underneath higher-level research tools.
-
-It provides:
-
-- a minimum evidence packet format
-- JSON record contracts
-- artifact manifests
-- replay manifests
-- conservative authority flags
-- packet verification
-- future adapter boundaries for `txtai`, `paperetl`, `paperai`, notebooks, and reports
-
-The goal is to make AI-assisted research outputs more inspectable, replay-aware, and honest about their limits.
-
----
-
-## What this is not
-
-This is not:
-
-- a notebook platform
-- a RAG framework
-- a model server
-- a workflow orchestrator
-- a citation manager
-- a dashboard
-- an agent framework
-- a scientific validator
-- a truth engine
-- a Git/source-control settlement tool
-
-`evidenceai-core` does not claim that a generated answer is true merely because it was retrieved, cited, executed, or rendered.
-
----
-
-## Minimum evidence packet
-
-A minimum packet contains:
+A static packet contains these required artifacts:
 
 ```text
-evidence_packets/<packet_id>/
-  query_job.json
-  retrieval_record.json
-  source_citations.json
-  context_pack.md
-  notebook_run_record.json
-  environment_report.json
-  artifact_manifest.json
-  replay_manifest.json
+query_job.json
+retrieval_record.json
+source_citations.json
+context_pack.md
+notebook_run_record.json
+environment_report.json
+artifact_manifest.json
+replay_manifest.json
 ```
 
-### `query_job.json`
+These records describe what was requested, what placeholder retrieval/citation/context artifacts exist, what execution placeholder exists, what environment metadata was captured, what artifacts exist, and what replay limitations apply.
 
-Records the request that started the run.
+The current packet is intentionally conservative. It records evidence mechanics; it does not prove correctness.
 
-### `retrieval_record.json`
+## Authority flags
 
-Records what was retrieved, from which index or corpus, with which configuration.
-
-### `source_citations.json`
-
-Records source identifiers, citation locators, source hashes where available, and support status.
-
-### `context_pack.md`
-
-A human-readable bundle of selected context used by a downstream notebook, report, or reviewer.
-
-### `notebook_run_record.json`
-
-Records execution status. In the first slice, this explicitly says `not_executed`.
-
-### `environment_report.json`
-
-Records declared-scope environment details without dumping private secrets.
-
-### `artifact_manifest.json`
-
-Lists packet files and generated artifacts with hashes where available.
-
-### `replay_manifest.json`
-
-Explains what can be inspected or replayed, and what cannot.
-
----
-
-## Default authority flags
-
-Every evidence packet should preserve conservative defaults:
+Default authority flags remain false:
 
 ```json
 {
@@ -134,280 +89,400 @@ Every evidence packet should preserve conservative defaults:
 }
 ```
 
-These flags are not decorative. They prevent evidence from being silently upgraded into validation or promotion.
+The verifier fails if a packet escalates these flags.
 
----
+## Public Python API
 
-## First build target
+```python
+from evidence_ai_core import (
+    create_static_packet,
+    export_packet_zip,
+    extract_packet_zip,
+    inspect_packet,
+    inventory_packet_bundle,
+    list_schema_contracts,
+    load_packet,
+    load_schema_contract,
+    preview_packet_zip,
+    read_artifact_manifest,
+    summarize_artifact_hashes,
+    summarize_packet,
+    verify_packet,
+)
+```
 
-The first implementation slice should be:
+### Packet creation
+
+```python
+from pathlib import Path
+from evidence_ai_core import create_static_packet
+
+packet_dir = create_static_packet(
+    request_text="What evidence supports this research claim?",
+    source_paths=[Path("source.md")],
+    output_root=Path("packets"),
+)
+```
+
+### Mechanical verification
+
+```python
+from evidence_ai_core import verify_packet
+
+result = verify_packet(packet_dir)
+print(result["verification_status"])
+```
+
+Mechanical verification checks packet shape and artifact mechanics only.
+
+It can fail for:
+
+- missing required artifact,
+- invalid JSON,
+- missing required field,
+- packet ID mismatch,
+- artifact hash mismatch,
+- forbidden authority escalation.
+
+### Read-only packet loading
+
+```python
+from evidence_ai_core import load_packet
+
+packet = load_packet(packet_dir)
+print(packet["json_records"].keys())
+```
+
+`load_packet()` reads packet contents into one static structure. It does not repair, execute, validate, promote, or mutate anything.
+
+### Compact packet summary
+
+```python
+from evidence_ai_core import summarize_packet
+
+summary = summarize_packet(packet_dir)
+print(summary["record_type"])
+```
+
+`summarize_packet()` returns compact packet status without embedding all JSON records or text artifacts.
+
+### Manifest and hash summary
+
+```python
+from evidence_ai_core import summarize_artifact_hashes
+
+hash_summary = summarize_artifact_hashes(packet_dir)
+print(hash_summary["hash_status"])
+```
+
+This recomputes local SHA-256 values for declared artifacts and reports missing or mismatched artifacts.
+
+### Schema contract discovery
+
+```python
+from evidence_ai_core import list_schema_contracts, load_schema_contract
+
+index = list_schema_contracts()
+contract = load_schema_contract("query_job.json")
+```
+
+Schema discovery reads static schema files. It does not add runtime validation authority.
+
+### Packet ZIP export
+
+```python
+from evidence_ai_core import export_packet_zip
+
+result = export_packet_zip(packet_dir, "packet.zip")
+print(result["export_status"])
+```
+
+Export creates a local ZIP archive from an existing packet directory. It uses deterministic archive entry ordering and preserves file bytes.
+
+Export does not validate scientific content, run replay, execute notebooks, call adapters, touch source control, or promote state.
+
+### Packet ZIP import preview
+
+```python
+from evidence_ai_core import preview_packet_zip
+
+preview = preview_packet_zip("packet.zip")
+print(preview["preview_status"])
+```
+
+Preview inspects the ZIP without extracting it. It rejects unsafe archive entries and reports required artifact, JSON, packet ID, record type, and declared hash preview status.
+
+### Safe packet ZIP extraction
+
+```python
+from evidence_ai_core import extract_packet_zip
+
+result = extract_packet_zip("packet.zip", "imported_packets")
+print(result["import_status"])
+```
+
+Extraction first runs preview, then extracts under the caller-provided output root. It refuses unsafe entries and existing destinations unless overwrite is explicitly allowed.
+
+Extraction does not execute anything.
+
+### Static ZIP roundtrip contract
+
+The test suite proves the static/local roundtrip path:
+
+```text
+create packet
+export ZIP
+preview ZIP
+extract ZIP
+verify extracted packet
+load extracted packet
+summarize extracted packet
+compare original/exported/extracted packet IDs and artifacts
+```
+
+The roundtrip tests are contract tests. They do not add scientific validation or promotion authority.
+
+### Bundle inventory
+
+```python
+from evidence_ai_core import inventory_packet_bundle
+
+inventory = inventory_packet_bundle(
+    "packets",
+    recursive=True,
+    kind_filter="all",
+    status_filter="all",
+    sort_by="relative-path",
+    reverse=False,
+)
+print(inventory["record_type"])
+```
+
+Bundle inventory discovers local packet directories and packet ZIP files under a chosen root. It reports compact status for found candidates and records failed candidates without mutating or executing anything.
+
+Inventory is discovery, not validation.
+
+Inventory filters:
+
+```text
+kind_filter: all | dirs | zips
+status_filter: all | passed | failed
+```
+
+Inventory sort keys:
+
+```text
+relative-path
+name
+kind
+verification-status
+```
+
+The result reports both filtered candidate counts and the unfiltered candidate count.
+
+## Public errors
+
+```python
+from evidence_ai_core import (
+    EvidenceCoreError,
+    PacketAlreadyExistsError,
+    PacketExportError,
+    PacketImportError,
+    PacketInputError,
+    PacketReadError,
+    PacketVerificationError,
+)
+```
+
+Package-owned errors are used for expected static/local API and CLI failures.
+
+## CLI usage
+
+### Create a static packet
+
+```powershell
+evidence-ai-core create-static --request-text "demo request" --source .\source.md --output-root .\packets
+```
+
+The command prints the created packet directory path.
+
+### Create from a local request file
+
+```powershell
+evidence-ai-core create-static --request-file .\request.txt --source .\source.md --output-root .\packets
+```
+
+The request file is read locally as static input. It is not interpreted as an orchestration file.
+
+### Verify a packet
+
+```powershell
+evidence-ai-core verify .\packets\<packet_id>
+```
+
+Valid packet verification returns `0`. Mechanical failure returns nonzero.
+
+### Inspect a packet
+
+```powershell
+evidence-ai-core inspect .\packets\<packet_id>
+```
+
+Inspection is read-only and must not claim correctness, validation, replay proof, source-control settlement, or promotion.
+
+### Compact summary
+
+```powershell
+evidence-ai-core summary .\packets\<packet_id>
+```
+
+### Manifest and hash summary
+
+```powershell
+evidence-ai-core manifest .\packets\<packet_id>
+evidence-ai-core hash-summary .\packets\<packet_id>
+```
+
+### Schema discovery
+
+```powershell
+evidence-ai-core schema-index
+evidence-ai-core schema-contract query_job.json
+```
+
+### Export a packet ZIP
+
+```powershell
+evidence-ai-core export-zip .\packets\<packet_id> --output-zip .\exports\packet.zip
+```
+
+Use `--overwrite` to replace an existing ZIP.
+
+### Preview packet ZIP import
+
+```powershell
+evidence-ai-core import-zip-preview .\exports\packet.zip
+```
+
+Preview is read-only and performs no extraction.
+
+### Safely extract a packet ZIP
+
+```powershell
+evidence-ai-core import-zip-extract .\exports\packet.zip --output-root .\imported_packets
+```
+
+Use `--overwrite` to replace an existing extracted packet directory.
+
+### Inventory local packet bundles
+
+```powershell
+evidence-ai-core bundle-inventory .\packets
+evidence-ai-core bundle-inventory .\packets --recursive
+evidence-ai-core bundle-inventory .\packets --no-zips
+```
+
+Inventory reports local packet directories and packet ZIPs. It does not extract ZIPs, run replay, execute notebooks, call models, or mutate files.
+
+Filter and sort examples:
+
+```powershell
+evidence-ai-core bundle-inventory .\packets --kind dirs
+evidence-ai-core bundle-inventory .\packets --kind zips
+evidence-ai-core bundle-inventory .\packets --status passed
+evidence-ai-core bundle-inventory .\packets --status failed
+evidence-ai-core bundle-inventory .\packets --sort name
+evidence-ai-core bundle-inventory .\packets --sort verification-status --reverse
+```
+
+Supported inventory options:
+
+```text
+--kind all|dirs|zips
+--status all|passed|failed
+--sort relative-path|name|kind|verification-status
+--reverse
+```
+
+### Pretty JSON output
+
+JSON-producing commands emit compact sorted JSON by default. Use `--pretty` for indented sorted JSON.
+
+Examples:
+
+```powershell
+evidence-ai-core verify .\packets\<packet_id> --pretty
+evidence-ai-core summary .\packets\<packet_id> --pretty
+evidence-ai-core bundle-inventory .\packets --pretty
+```
+
+## CLI output rule
+
+`create-static` prints a packet path.
+
+Other JSON-producing commands return stable JSON.
+
+Default JSON:
+
+- compact,
+- single-line,
+- sorted keys.
+
+Pretty JSON:
+
+- indented,
+- sorted keys.
+
+## Development checkpoint
+
+Current validated implementation lane:
 
 ```text
 slice_001_static_minimal_evidence_packet
+slice_002_packet_verifier_hard_failures
+slice_003_json_schema_minimum_contract
+slice_004_cli_packet_smoke_hardening
+slice_005_inspect_command_readonly_summary
+slice_006_request_file_static_packet_input
+slice_007_cli_failure_exit_codes_and_error_contract
+slice_008_no_external_action_guardrails
+slice_009_api_error_contract_and_public_exports
+slice_010_verification_result_contract_hardening
+slice_011_packet_reader_static_load_api
+slice_012_packet_summary_api_or_cli_json_shape_hardening
+slice_013_packet_manifest_reader_and_hash_summary
+slice_014_schema_index_and_contract_discovery
+slice_015_cli_json_output_stability_and_pretty_print_options
+slice_016_readme_and_code_status_update
+slice_017_static_packet_export_zip
+slice_018_static_packet_import_zip_preview
+slice_019_static_packet_import_extract_safe_mode
+slice_020_readme_code_status_export_import_update
+slice_021_static_packet_zip_roundtrip_contract
+slice_022_readme_code_status_roundtrip_update
+slice_023_static_packet_bundle_inventory
+slice_024_readme_code_status_inventory_update
+slice_025_packet_inventory_filter_and_sort_options
 ```
 
-It creates and verifies a static/local evidence packet.
+Current local validation bundle:
 
-No `txtai`.  
-No `paperetl`.  
-No `paperai`.  
-No model calls.  
-No notebook execution.  
-No source-control mutation.  
-No network access.  
-No validation or promotion claims.
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests/test_core.py tests/test_schema_contract.py tests/test_cli.py tests/test_cli_json_output.py tests/test_no_external_actions.py tests/test_api_contract.py tests/test_verification_result_contract.py tests/test_packet_reader.py tests/test_packet_summary.py tests/test_manifest.py tests/test_schema_index.py tests/test_packet_export.py tests/test_packet_import.py tests/test_packet_zip_roundtrip.py tests/test_packet_inventory.py
+```
 
-The first job is to prove the record model, not the whole ecosystem.
-
----
-
-## Future adapter flow
+Expected current result:
 
 ```text
-paperetl
-  -> source records / citation locators
-  -> evidenceai-core packet records
-
-txtai
-  -> retrieval record / context pack inputs
-  -> evidenceai-core packet records
-
-paperai
-  -> report artifacts / answer tables
-  -> evidenceai-core artifact manifest
-
-notebook runner
-  -> executed notebook / run logs
-  -> evidenceai-core notebook_run_record.json
-
-replay/export layer
-  -> replay attempt records / RO-Crate export
-  -> evidenceai-core packet archive
+123 passed
 ```
 
-Adapters execute external work. `evidenceai-core` records and verifies evidence.
+## Design posture
 
----
+This project deliberately separates evidence from proof.
 
-## Verification model
+`evidence-ai-core` can tell you whether a packet is structurally coherent, whether required artifacts exist, whether hashes match, whether record IDs are consistent, whether authority flags stayed conservative, whether a packet archive can be safely previewed or extracted, whether the static ZIP roundtrip mechanics preserve identity and artifacts, and what packet-like bundles exist under a local root.
 
-The verifier may check:
+It cannot tell you whether a scientific answer is true.
 
-- required files exist
-- JSON files parse
-- required fields exist
-- `packet_id` is consistent across records
-- artifact hashes match
-- replay manifest includes required files
-- authority flags remain conservative
-
-The verifier must not check:
-
-- scientific correctness
-- source truth
-- claim support
-- methodology validity
-- statistical soundness
-- publication readiness
-- peer-review status
-- institutional acceptance
-
-Mechanical verification is not scientific validation.
-
----
-
-## Standards posture
-
-`evidenceai-core` should align with standards without making the first slice heavy.
-
-| Standard / ecosystem | Proposed role |
-|---|---|
-| W3C PROV | Future conceptual mapping for entities, activities, and agents |
-| JSON Schema Draft 2020-12 | Future validation layer for packet records |
-| RO-Crate | Future export format for research-object packaging |
-| FAIR4RS | Research-software design principle |
-| CITATION.cff / CodeMeta | Repository-level software citation metadata |
-| SPDX / SBOM | Optional future dependency and license metadata |
-| Software Heritage IDs | Optional future source-code artifact identifiers |
-| OpenLineage | Optional future mapping for jobs, runs, and datasets |
-
-The first version should use local files, JSON records, SHA-256 hashes, and simple mechanical checks.
-
----
-
-## Suggested repository layout
-
-```text
-evidenceai-core/
-  README.md
-  pyproject.toml
-  LICENSE
-  CHANGELOG.md
-
-  src/
-    evidenceai_core/
-      __init__.py
-      constants.py
-      ids.py
-      paths.py
-      hashes.py
-      packet.py
-      records.py
-      schemas.py
-      verify.py
-      environment.py
-      errors.py
-      cli.py
-
-  schemas/
-    query_job.schema.json
-    retrieval_record.schema.json
-    source_citations.schema.json
-    notebook_run_record.schema.json
-    environment_report.schema.json
-    artifact_manifest.schema.json
-    replay_manifest.schema.json
-
-  examples/
-    static_minimal/
-      inputs/
-        request.txt
-        source_a.md
-      expected_packet/
-        query_job.json
-        retrieval_record.json
-        source_citations.json
-        context_pack.md
-        notebook_run_record.json
-        environment_report.json
-        artifact_manifest.json
-        replay_manifest.json
-
-  docs/
-    evidence_packet_model.md
-    authority_vocabulary.md
-    adapter_contracts.md
-    standards_mapping.md
-
-  tests/
-    test_packet_creation.py
-    test_packet_verification.py
-    test_authority_flags.py
-    test_artifact_manifest.py
-    test_no_external_actions.py
-```
-
----
-
-## Python API sketch
-
-```python
-from evidenceai_core import create_static_packet, verify_packet
-
-packet_dir = create_static_packet(
-    request_text="Create a minimal evidence packet.",
-    source_paths=["examples/static_minimal/inputs/source_a.md"],
-    output_root="evidence_packets"
-)
-
-result = verify_packet(packet_dir)
-```
-
----
-
-## CLI sketch
-
-```bash
-evidenceai-core create-static \
-  --request-file examples/static_minimal/inputs/request.txt \
-  --source examples/static_minimal/inputs/source_a.md \
-  --output-root evidence_packets
-
-evidenceai-core verify evidence_packets/<packet_id>
-
-evidenceai-core inspect evidence_packets/<packet_id>
-```
-
----
-
-## Roadmap
-
-### Phase 0 - static evidence core
-
-- Create static packets
-- Write required artifacts
-- Hash artifacts
-- Verify required files and fields
-- Preserve conservative authority flags
-
-### Phase 1 - schema hardening
-
-- Add JSON Schema Draft 2020-12 files
-- Add schema validation tests
-- Add structured verification results
-
-### Phase 2 - txtai adapter contract
-
-- Record query, index reference, retrieval configuration, retrieved chunks, scores, ranks, and source IDs
-- Preserve retrieval context without claiming citation support
-
-### Phase 3 - paperetl adapter contract
-
-- Record parsed source metadata
-- Preserve source identifiers and hashes
-- Link source records to citation records
-
-### Phase 4 - paperai adapter contract
-
-- Record generated reports and answer tables
-- Link report sections back to citations and retrieval records
-- Preserve authority flags
-
-### Phase 5 - notebook/report adapters
-
-- Record Papermill or notebook execution
-- Record rendered reports
-- Preserve logs and environment metadata
-
-### Phase 6 - archive/export layer
-
-- Map packets to RO-Crate-style export metadata
-- Add optional PROV mapping
-- Add optional software citation metadata
-
----
-
-## Development principles
-
-- Evidence is not proof.
-- Retrieval context is not validation.
-- Notebook execution is not scientific correctness.
-- Rendered reports are not durable truth.
-- Missing context should be explicit.
-- Every official run should be inspectable.
-- Every generated report should point back to machine-readable records.
-- No whole-home indexing.
-- No hidden model downloads.
-- No source-control mutation by default.
-- Humans and institutions promote durable truth.
-
----
-
-## References
-
-- NeuML: https://neuml.com/
-- txtai: https://github.com/neuml/txtai
-- txtai documentation: https://neuml.github.io/txtai/
-- txtai tutorial series: https://neuml.hashnode.dev/series/txtai-tutorial
-- paperetl: https://github.com/neuml/paperetl
-- paperai: https://github.com/neuml/paperai
-- W3C PROV-DM: https://www.w3.org/TR/prov-dm/
-- JSON Schema Draft 2020-12: https://json-schema.org/draft/2020-12
-- RO-Crate: https://www.researchobject.org/ro-crate/specification/1.2/
-- FAIR4RS: https://www.nature.com/articles/s41597-022-01710-x
-
----
-
-## License
-
-Apache-2.0 is recommended for alignment with `txtai`, `paperetl`, and `paperai`.
+That boundary is the product.
