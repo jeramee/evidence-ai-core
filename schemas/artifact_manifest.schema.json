@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "artifact_manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "packet_id"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "artifact_manifest"
+    }
+  }
+}
