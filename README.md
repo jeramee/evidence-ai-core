@@ -8,6 +8,12 @@ Core rule:
 
 `evidence-ai-core` creates, reads, summarizes, verifies, exports, previews, safely imports, roundtrip-checks, and inventories local evidence packets. It is a low-level packet and contract layer. It does **not** execute notebooks, call models, run retrieval systems, mutate source control, promote state, or validate scientific truth.
 
+## v0.1 feature stop-line
+
+`evidence-ai-core` is feature-complete for v0.1 after `slice_027_packet_inventory_jsonl_export`. The remaining v0.1 lane is release hardening: contract cleanup, public API stability notes, CLI/help-text stabilization, packaging polish, examples, README/docs alignment, and release-candidate closeout.
+
+No new user-facing Project 1 packet features should be added before v0.1 unless cleanup/release review finds a blocker. Runtime adapters, notebooks, model calls, retrieval execution, source-control mutation, validation authority, promotion authority, RunLab behavior, and TraceLab behavior belong outside Project 1.
+
 ## Project identity
 
 | Field | Value |
@@ -36,7 +42,9 @@ Core rule:
 - Static packet bundle inventory for local packet folders and packet ZIPs.
 - Inventory filtering by candidate kind and status.
 - Deterministic inventory sorting.
+- Inventory JSONL export for filtered/sorted candidate lists.
 - Stable package-owned error classes.
+- Packaged static schema data for install/wheel use.
 
 ## What this package does not own
 
@@ -56,6 +64,58 @@ Core rule:
 - Promotion authority.
 
 Higher-level products may use this package later, but this package remains the static evidence-packet core.
+
+## Packaging / release posture
+
+The package declares the `evidence-ai-core` CLI entry point in `pyproject.toml` and includes the static JSON Schema contracts as package data under `src/evidence_ai_core/schemas/`.
+
+Schema discovery first checks the packaged schema data, then the source-tree `schemas/` directory, then a current-working-directory `schemas/` directory. This keeps schema discovery usable from an installed package while preserving source-tree development behavior.
+
+## v0.1 release candidate closeout
+
+`slice_033_v0_1_release_candidate_closeout` records the v0.1 release-candidate stop-line.
+
+Current release-candidate posture:
+
+- Project 1 is feature-complete for v0.1.
+- Final release-candidate bundle target is `132 passed`.
+- Public API stability notes are documented in `docs/API_STABILITY.md`.
+- Static examples are documented in `docs/EXAMPLES.md` and `examples/static_minimal/`.
+- Release checklist is documented in `docs/RELEASE_CANDIDATE_CLOSEOUT.md`.
+- Changelog draft is documented in `CHANGELOG.md`.
+
+This closeout does not add new packet features, adapters, notebook execution, model calls, retrieval execution, source-control mutation, scientific validation authority, or promotion authority.
+
+## Static minimal example
+
+A small local example is included under:
+
+```text
+examples/static_minimal/
+```
+
+The example contains a request file and one static source file:
+
+```text
+examples/static_minimal/inputs/request.txt
+examples/static_minimal/inputs/source_a.md
+```
+
+Create a packet from the example inputs:
+
+```powershell
+evidence-ai-core create-static --request-file .\examples\static_minimal\inputs\request.txt --source .\examples\static_minimal\inputs\source_a.md --output-root .\examples\static_minimal\packets
+```
+
+Then run read-only/mechanical checks against the created packet directory:
+
+```powershell
+evidence-ai-core verify .\examples\static_minimal\packets\<packet_id>
+evidence-ai-core summary .\examples\static_minimal\packets\<packet_id>
+evidence-ai-core hash-summary .\examples\static_minimal\packets\<packet_id>
+```
+
+The example is intentionally static/local. It does not execute notebooks, call models, run retrieval, contact networks, mutate source control, validate scientific claims, or promote state.
 
 ## Required packet artifacts
 
@@ -98,6 +158,7 @@ from evidence_ai_core import (
     create_static_packet,
     export_packet_zip,
     extract_packet_zip,
+    export_packet_inventory_jsonl,
     inspect_packet,
     inventory_packet_bundle,
     list_schema_contracts,
@@ -245,7 +306,7 @@ The roundtrip tests are contract tests. They do not add scientific validation or
 ### Bundle inventory
 
 ```python
-from evidence_ai_core import inventory_packet_bundle
+from evidence_ai_core import inventory_packet_bundle, export_packet_inventory_jsonl
 
 inventory = inventory_packet_bundle(
     "packets",
@@ -280,6 +341,26 @@ verification-status
 
 The result reports both filtered candidate counts and the unfiltered candidate count.
 
+### Inventory JSONL export
+
+```python
+from evidence_ai_core import export_packet_inventory_jsonl
+
+result = export_packet_inventory_jsonl(
+    "packets",
+    "inventory.jsonl",
+    recursive=True,
+    kind_filter="zips",
+    status_filter="passed",
+    sort_by="name",
+)
+print(result["jsonl_record_count"])
+```
+
+`export_packet_inventory_jsonl()` writes one compact, sorted JSON object per filtered inventory candidate. It uses the same local discovery, filtering, and sorting contract as `inventory_packet_bundle()`.
+
+The JSONL export is local reporting only. It does not mutate packets, extract ZIPs, execute packet contents, call models, contact networks, touch source control, validate scientific claims, or promote state.
+
 ## Public errors
 
 ```python
@@ -296,7 +377,45 @@ from evidence_ai_core import (
 
 Package-owned errors are used for expected static/local API and CLI failures.
 
+## v0.1 public API stability notes
+
+The v0.1 public API is intentionally conservative and static/local. Documented public calls and exported package-owned errors should not change casually during the v0.1 line.
+
+Stable-ish v0.1 surfaces:
+
+- documented public functions exported from `evidence_ai_core.__all__`,
+- package-owned error classes exported from `evidence_ai_core`,
+- documented CLI command names,
+- compact JSON output keys used by the documented CLI/API examples,
+- static JSON Schema files and schema discovery results,
+- package-data inclusion for `schemas/*.schema.json`.
+
+Still internal before v1.0:
+
+- helper modules and private functions,
+- test helpers,
+- undocumented implementation details,
+- exact formatting of human-readable error text beyond clear failure meaning.
+
+Allowed pre-v1.0 changes:
+
+- additive JSON fields,
+- compatibility aliases when useful,
+- safety or authority-boundary corrections,
+- naming corrections that prevent proof/validation/promotion confusion,
+- packaging fixes that preserve the static/local contract.
+
+Avoided changes:
+
+- casual renames of documented API calls,
+- casual CLI command renames,
+- JSON key changes that break simple scripting without a safety reason,
+- new runtime adapter dependencies,
+- any name or behavior implying scientific proof, workflow promotion, source-control settlement, notebook execution, model calls, or retrieval execution.
+
 ## CLI usage
+
+The CLI examples below use local files only. For a ready-made demo input, see `examples/static_minimal/` and `docs/EXAMPLES.md`.
 
 ### Create a static packet
 
@@ -395,6 +514,16 @@ evidence-ai-core bundle-inventory .\packets --sort name
 evidence-ai-core bundle-inventory .\packets --sort verification-status --reverse
 ```
 
+### Export inventory JSONL
+
+```powershell
+evidence-ai-core bundle-inventory-jsonl .\packets --output-jsonl .\inventory.jsonl
+evidence-ai-core bundle-inventory-jsonl .\packets --output-jsonl .\inventory.jsonl --kind zips --status passed --sort name
+evidence-ai-core bundle-inventory-jsonl .\packets --output-jsonl .\inventory.jsonl --recursive --overwrite
+```
+
+`bundle-inventory-jsonl` writes one compact JSON object per filtered/sorted inventory candidate. The command returns a JSON export result that includes candidate counts, JSONL line count, bytes written, output path, filters, sort options, authority flags, and evidence-is-not-proof language.
+
 Supported inventory options:
 
 ```text
@@ -414,6 +543,7 @@ Examples:
 evidence-ai-core verify .\packets\<packet_id> --pretty
 evidence-ai-core summary .\packets\<packet_id> --pretty
 evidence-ai-core bundle-inventory .\packets --pretty
+evidence-ai-core bundle-inventory-jsonl .\packets --output-jsonl .\inventory.jsonl --pretty
 ```
 
 ## CLI output rule
@@ -463,18 +593,26 @@ slice_022_readme_code_status_roundtrip_update
 slice_023_static_packet_bundle_inventory
 slice_024_readme_code_status_inventory_update
 slice_025_packet_inventory_filter_and_sort_options
+slice_026_readme_code_status_inventory_filter_sort_update
+slice_027_packet_inventory_jsonl_export
+slice_028_readme_code_status_inventory_jsonl_update
+slice_029_v0_1_contract_cleanup_audit
+slice_030_docs_examples_alignment
+slice_031_packaging_release_polish
+slice_032_public_api_stability_notes
+slice_033_v0_1_release_candidate_closeout
 ```
 
 Current local validation bundle:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q tests/test_core.py tests/test_schema_contract.py tests/test_cli.py tests/test_cli_json_output.py tests/test_no_external_actions.py tests/test_api_contract.py tests/test_verification_result_contract.py tests/test_packet_reader.py tests/test_packet_summary.py tests/test_manifest.py tests/test_schema_index.py tests/test_packet_export.py tests/test_packet_import.py tests/test_packet_zip_roundtrip.py tests/test_packet_inventory.py
+.\.venv\Scripts\python.exe -m pytest -q tests/test_core.py tests/test_schema_contract.py tests/test_cli.py tests/test_cli_json_output.py tests/test_no_external_actions.py tests/test_api_contract.py tests/test_verification_result_contract.py tests/test_packet_reader.py tests/test_packet_summary.py tests/test_manifest.py tests/test_schema_index.py tests/test_packet_export.py tests/test_packet_import.py tests/test_packet_zip_roundtrip.py tests/test_packet_inventory.py tests/test_packaging.py
 ```
 
 Expected current result:
 
 ```text
-123 passed
+132 passed
 ```
 
 ## Design posture

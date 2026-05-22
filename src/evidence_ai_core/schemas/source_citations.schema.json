@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "citation_set_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "citation_status": {
+      "type": "string"
+    },
+    "citations": {
+      "items": {
+        "properties": {
+          "authority_note": {
+            "type": "string"
+          },
+          "citation_id": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "object"
+          },
+          "quoted_or_referenced_text": {
+            "type": "string"
+          },
+          "retrieval_result_ref": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "source_title": {
+            "type": "string"
+          },
+          "source_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "support_status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "citation_id",
+          "source_id",
+          "source_type",
+          "locator",
+          "support_status"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "packet_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "source_citations"
+    },
+    "schema_version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "packet_id",
+    "citation_set_id",
+    "citation_status",
+    "citations"
+  ],
+  "title": "source_citations",
+  "type": "object"
+}

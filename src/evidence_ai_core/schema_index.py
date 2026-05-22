@@ -151,20 +151,21 @@ def _expected_record_type(schema: dict[str, Any], artifact_name: str) -> str | N
 
 def _resolve_schema_dir(schema_dir: str | Path | None) -> Path:
     if schema_dir is not None:
-        resolved = Path(schema_dir)
+        candidates = [Path(schema_dir)]
     else:
-        package_root = Path(__file__).resolve().parents[2]
-        resolved = package_root / "schemas"
-        if not resolved.exists():
-            resolved = Path.cwd() / "schemas"
+        package_schema_dir = Path(__file__).resolve().parent / "schemas"
+        source_tree_schema_dir = Path(__file__).resolve().parents[2] / "schemas"
+        cwd_schema_dir = Path.cwd() / "schemas"
+        candidates = [package_schema_dir, source_tree_schema_dir, cwd_schema_dir]
 
-    if not resolved.exists():
-        raise PacketInputError(f"schema directory does not exist: {resolved}")
+    for candidate in candidates:
+        if candidate.exists():
+            if not candidate.is_dir():
+                raise PacketInputError(f"schema path is not a directory: {candidate}")
+            return candidate
 
-    if not resolved.is_dir():
-        raise PacketInputError(f"schema path is not a directory: {resolved}")
-
-    return resolved
+    missing = ", ".join(str(candidate) for candidate in candidates)
+    raise PacketInputError(f"schema directory does not exist; checked: {missing}")
 
 
 def _schema_authority_note() -> str:

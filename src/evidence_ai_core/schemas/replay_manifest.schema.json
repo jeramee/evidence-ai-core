@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "limitations": {
+      "type": "array"
+    },
+    "packet_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "replay_manifest"
+    },
+    "replay_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "replay_scope": {
+      "type": "string"
+    },
+    "replay_status": {
+      "type": "string"
+    },
+    "required_files": {
+      "type": "array"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "verification_checks": {
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "packet_id",
+    "replay_id",
+    "replay_status",
+    "required_files",
+    "verification_checks",
+    "limitations"
+  ],
+  "title": "replay_manifest",
+  "type": "object"
+}

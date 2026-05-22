@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "authority_flags": {
+      "additionalProperties": false,
+      "properties": {
+        "correctness_proven": {
+          "const": false
+        },
+        "repo_mutated": {
+          "const": false
+        },
+        "source_control_touched": {
+          "const": false
+        },
+        "state_promoted": {
+          "const": false
+        }
+      },
+      "required": [
+        "correctness_proven",
+        "repo_mutated",
+        "state_promoted",
+        "source_control_touched"
+      ],
+      "type": "object"
+    },
+    "completed_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "execution_status": {
+      "type": "string"
+    },
+    "executor": {
+      "type": "object"
+    },
+    "inputs": {
+      "type": "array"
+    },
+    "outputs": {
+      "type": "array"
+    },
+    "packet_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "notebook_run_record"
+    },
+    "run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "packet_id",
+    "run_id",
+    "execution_mode",
+    "execution_status",
+    "authority_flags"
+  ],
+  "title": "notebook_run_record",
+  "type": "object"
+}

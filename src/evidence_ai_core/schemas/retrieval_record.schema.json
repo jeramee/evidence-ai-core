@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "authority_note": {
+      "type": "string"
+    },
+    "index_ref": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "packet_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "parameters": {
+      "type": "object"
+    },
+    "query_ref": {
+      "type": "object"
+    },
+    "record_type": {
+      "const": "retrieval_record"
+    },
+    "results": {
+      "items": {
+        "properties": {
+          "locator": {
+            "type": "object"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "result_id": {
+            "type": "string"
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "text_preview": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_id",
+          "source_id",
+          "rank",
+          "locator"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "retrieval_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "retrieval_mode": {
+      "type": "string"
+    },
+    "retrieval_status": {
+      "type": "string"
+    },
+    "retriever": {
+      "type": "object"
+    },
+    "schema_version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "packet_id",
+    "retrieval_id",
+    "retrieval_mode",
+    "query_ref",
+    "results",
+    "retrieval_status"
+  ],
+  "title": "retrieval_record",
+  "type": "object"
+}
