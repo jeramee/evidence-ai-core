@@ -17,6 +17,8 @@ from .packet import create_static_packet
 from .schema_index import list_schema_contracts, load_schema_contract
 from .summary import summarize_packet
 from .verify import verify_packet
+from .tracelab_bundle import preview_tracelab_bundle
+
 
 EXIT_OK = 0
 EXIT_VERIFICATION_FAILED = 1
@@ -70,6 +72,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "schema-contract":
         return _schema_contract(args)
+        
+    if args.command == "tracelab-bundle-preview":
+        result = preview_tracelab_bundle(args.bundle_zip)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["preview_status"] == "passed_tracelab_bundle_preview" else 1
 
     print("error: unknown command", file=sys.stderr)
     return EXIT_USAGE_ERROR
@@ -160,6 +167,10 @@ def _build_parser() -> argparse.ArgumentParser:
     schema_contract.add_argument("artifact_or_schema")
     schema_contract.add_argument("--schema-dir")
     _add_json_output_options(schema_contract)
+
+    tracelab_preview = sub.add_parser("tracelab-bundle-preview")
+    tracelab_preview.add_argument("bundle_zip")
+    _add_json_output_options(tracelab_preview)
 
     return parser
 
@@ -415,6 +426,16 @@ def _schema_contract(args: argparse.Namespace) -> int:
     _print_json(result, pretty=args.pretty)
     return EXIT_OK
 
+
+
+def _tracelab_bundle_preview(args: argparse.Namespace) -> int:
+    result = preview_tracelab_bundle(args.bundle_zip)
+    _print_json(result, pretty=args.pretty)
+    return (
+        EXIT_OK
+        if result["preview_status"] == "passed_tracelab_bundle_preview"
+        else EXIT_VERIFICATION_FAILED
+    )
 
 def _resolve_request_text(args: argparse.Namespace) -> str:
     if args.request_text is not None:
