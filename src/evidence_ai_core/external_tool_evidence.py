@@ -7,8 +7,10 @@ run retrieval, validate scientific truth, or promote claims.
 
 from __future__ import annotations
 
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any
+
+from .hashes import sha256_file
 
 
 EXTERNAL_TOOL_EVIDENCE_RECORD_TYPE = "external_tool_evidence_envelope"
@@ -92,12 +94,16 @@ REQUIRED_ARTIFACT_FIELDS = (
 )
 
 
-def verify_external_tool_evidence_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
+def verify_external_tool_evidence_envelope(
+    envelope: dict[str, Any],
+    artifact_root: str | Path | None = None,
+) -> dict[str, Any]:
     """Verify one external-tool evidence envelope mechanically.
 
     Verification is limited to shape, required fields, preferred vocabulary
-    warnings, safe relative artifact paths, required-hash presence, required
-    authority limits, and mechanical status derivation.
+    warnings, safe relative artifact paths, required-hash presence, optional
+    local file existence/hash checks, required authority limits, and mechanical
+    status derivation.
     """
 
     issues: list[dict[str, Any]] = []
@@ -156,6 +162,8 @@ def verify_external_tool_evidence_envelope(envelope: dict[str, Any]) -> dict[str
             )
             return _result(envelope.get("trace_id"), MECHANICAL_STATUS_UNSUPPORTED, issues)
 
+    resolved_artifact_root = _resolve_artifact_root(artifact_root, issues)
+
     tool_family = envelope.get("tool_family")
     if isinstance(tool_family, str) and tool_family not in PREFERRED_TOOL_FAMILIES:
         issues.append(
@@ -179,7 +187,7 @@ def verify_external_tool_evidence_envelope(envelope: dict[str, Any]) -> dict[str
         )
 
     _check_authority_limits(envelope.get("authority_limits"), issues)
-    _check_artifacts(envelope.get("artifacts"), issues)
+    _check_artifacts(envelope.get("artifacts"), issues, resolved_artifact_root)
 
     return _result(envelope.get("trace_id"), _status_from_issues(issues), issues)
 
@@ -229,7 +237,46 @@ def _check_authority_limits(authority_limits: Any, issues: list[dict[str, Any]])
             )
 
 
-def _check_artifacts(artifacts: Any, issues: list[dict[str, Any]]) -> None:
+def _resolve_artifact_root(
+    artifact_root: str | Path | None,
+    issues: list[dict[str, Any]],
+) -> Path | None:
+    if artifact_root is None:
+        return None
+
+    root = Path(artifact_root)
+    if not root.exists():
+        issues.append(
+            _issue(
+                "artifact_root_missing",
+                ISSUE_SEVERITY_ERROR,
+                "artifact_root was supplied but does not exist.",
+                path=str(root),
+                field="artifact_root",
+            )
+        )
+        return None
+
+    if not root.is_dir():
+        issues.append(
+            _issue(
+                "artifact_root_not_directory",
+                ISSUE_SEVERITY_ERROR,
+                "artifact_root was supplied but is not a directory.",
+                path=str(root),
+                field="artifact_root",
+            )
+        )
+        return None
+
+    return root.resolve()
+
+
+def _check_artifacts(
+    artifacts: Any,
+    issues: list[dict[str, Any]],
+    artifact_root: Path | None,
+) -> None:
     if not isinstance(artifacts, list):
         issues.append(
             _issue(
@@ -329,6 +376,15 @@ def _check_artifacts(artifacts: Any, issues: list[dict[str, Any]]) -> None:
                         field=f"{field_prefix}.sha256",
                     )
                 )
+            elif artifact_root is not None and isinstance(path, str) and _is_safe_relative_path(path):
+                _check_required_artifact_file(
+                    artifact_root,
+                    path,
+                    sha256,
+                    artifact_id if isinstance(artifact_id, str) else None,
+                    field_prefix,
+                    issues,
+                )
         elif required_for_verification is False and "sha256" not in artifact:
             issues.append(
                 _issue(
@@ -340,6 +396,71 @@ def _check_artifacts(artifacts: Any, issues: list[dict[str, Any]]) -> None:
                     field=f"{field_prefix}.sha256",
                 )
             )
+
+
+def _check_required_artifact_file(
+    artifact_root: Path,
+    artifact_path: str,
+    expected_sha256: str,
+    artifact_id: str | None,
+    field_prefix: str,
+    issues: list[dict[str, Any]],
+) -> None:
+    candidate = (artifact_root / artifact_path).resolve()
+
+    try:
+        candidate.relative_to(artifact_root)
+    except ValueError:
+        issues.append(
+            _issue(
+                "unsafe_artifact_path",
+                ISSUE_SEVERITY_ERROR,
+                "Artifact path resolved outside artifact_root.",
+                artifact_id=artifact_id,
+                path=artifact_path,
+                field=f"{field_prefix}.path",
+            )
+        )
+        return
+
+    if not candidate.exists():
+        issues.append(
+            _issue(
+                "required_artifact_missing",
+                ISSUE_SEVERITY_ERROR,
+                "Artifact is required for verification but is missing on disk.",
+                artifact_id=artifact_id,
+                path=artifact_path,
+                field=f"{field_prefix}.path",
+            )
+        )
+        return
+
+    if not candidate.is_file():
+        issues.append(
+            _issue(
+                "required_artifact_not_file",
+                ISSUE_SEVERITY_ERROR,
+                "Artifact is required for verification but is not a file.",
+                artifact_id=artifact_id,
+                path=artifact_path,
+                field=f"{field_prefix}.path",
+            )
+        )
+        return
+
+    actual_sha256 = sha256_file(candidate)
+    if actual_sha256 != expected_sha256:
+        issues.append(
+            _issue(
+                "required_artifact_hash_mismatch",
+                ISSUE_SEVERITY_ERROR,
+                "Artifact sha256 does not match the recorded value.",
+                artifact_id=artifact_id,
+                path=artifact_path,
+                field=f"{field_prefix}.sha256",
+            )
+        )
 
 
 def _is_safe_relative_path(path: str) -> bool:
@@ -417,4 +538,3 @@ def _issue(
         issue["field"] = field
 
     return issue
-    

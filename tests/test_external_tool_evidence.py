@@ -1,4 +1,5 @@
 from copy import deepcopy
+import hashlib
 
 from evidence_ai_core.external_tool_evidence import (
     MECHANICAL_STATUS_FAILED,
@@ -39,6 +40,10 @@ def minimal_envelope() -> dict:
 
 def issue_codes(result: dict) -> set[str]:
     return {issue["code"] for issue in result["issues"]}
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def test_external_tool_evidence_minimal_txtai_envelope_passes():
@@ -170,4 +175,53 @@ def test_external_tool_evidence_does_not_mutate_input_envelope():
     verify_external_tool_evidence_envelope(envelope)
 
     assert envelope == before
-    
+
+
+def test_external_tool_evidence_checks_required_artifact_file_hash_when_root_supplied(tmp_path):
+    artifact_path = tmp_path / "configs" / "txtai.yml"
+    artifact_path.parent.mkdir()
+    artifact_path.write_text("path: sqlite\n", encoding="utf-8")
+
+    envelope = minimal_envelope()
+    envelope["artifacts"][0]["path"] = "configs/txtai.yml"
+    envelope["artifacts"][0]["sha256"] = sha256_text("path: sqlite\n")
+
+    result = verify_external_tool_evidence_envelope(envelope, artifact_root=tmp_path)
+
+    assert result["mechanical_verification_status"] == MECHANICAL_STATUS_PASSED
+    assert result["error_count"] == 0
+
+
+def test_external_tool_evidence_reports_missing_required_artifact_when_root_supplied(tmp_path):
+    envelope = minimal_envelope()
+    envelope["artifacts"][0]["path"] = "configs/missing.yml"
+    envelope["artifacts"][0]["sha256"] = "a" * 64
+
+    result = verify_external_tool_evidence_envelope(envelope, artifact_root=tmp_path)
+
+    assert result["mechanical_verification_status"] == MECHANICAL_STATUS_FAILED
+    assert "required_artifact_missing" in issue_codes(result)
+
+
+def test_external_tool_evidence_reports_hash_mismatch_when_root_supplied(tmp_path):
+    artifact_path = tmp_path / "configs" / "txtai.yml"
+    artifact_path.parent.mkdir()
+    artifact_path.write_text("actual: content\n", encoding="utf-8")
+
+    envelope = minimal_envelope()
+    envelope["artifacts"][0]["path"] = "configs/txtai.yml"
+    envelope["artifacts"][0]["sha256"] = sha256_text("expected: content\n")
+
+    result = verify_external_tool_evidence_envelope(envelope, artifact_root=tmp_path)
+
+    assert result["mechanical_verification_status"] == MECHANICAL_STATUS_FAILED
+    assert "required_artifact_hash_mismatch" in issue_codes(result)
+
+
+def test_external_tool_evidence_reports_invalid_artifact_root(tmp_path):
+    missing_root = tmp_path / "missing-root"
+
+    result = verify_external_tool_evidence_envelope(minimal_envelope(), artifact_root=missing_root)
+
+    assert result["mechanical_verification_status"] == MECHANICAL_STATUS_FAILED
+    assert "artifact_root_missing" in issue_codes(result)
