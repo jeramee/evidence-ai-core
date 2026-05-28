@@ -154,3 +154,46 @@ def test_public_api_contract_does_not_require_network_or_subprocess(tmp_path, mo
     assert schema_contract["record_type"] == "schema_contract"
     assert inventory["record_type"] == "packet_bundle_inventory"
     assert inventory_jsonl["record_type"] == "packet_bundle_inventory_jsonl_export"
+
+def test_external_tool_evidence_public_api_contract():
+    assert "verify_external_tool_evidence_envelope" in evidence_ai_core.__all__
+    assert "EXTERNAL_TOOL_EVIDENCE_RECORD_TYPE" in evidence_ai_core.__all__
+    assert "EXTERNAL_TOOL_EVIDENCE_SCHEMA_VERSION" in evidence_ai_core.__all__
+
+    assert callable(evidence_ai_core.verify_external_tool_evidence_envelope)
+    assert evidence_ai_core.EXTERNAL_TOOL_EVIDENCE_RECORD_TYPE == "external_tool_evidence_envelope"
+    assert evidence_ai_core.EXTERNAL_TOOL_EVIDENCE_SCHEMA_VERSION == "0.1"
+
+    envelope = {
+        "record_type": evidence_ai_core.EXTERNAL_TOOL_EVIDENCE_RECORD_TYPE,
+        "schema_version": evidence_ai_core.EXTERNAL_TOOL_EVIDENCE_SCHEMA_VERSION,
+        "trace_id": "trace_public_api_001",
+        "tool_family": "txtai",
+        "tool_role": "retrieval_index",
+        "artifacts": [
+            {
+                "artifact_id": "artifact_txtai_config",
+                "artifact_role": "config",
+                "path": "configs/txtai.yml",
+                "sha256": "a" * 64,
+                "required_for_verification": True,
+            }
+        ],
+        "mechanical_verification_status": evidence_ai_core.MECHANICAL_STATUS_NOT_CHECKED,
+        "authority_limits": [
+            "mechanical_integrity_only",
+            "no_truth_validation",
+            "no_model_authority",
+            "no_claim_promotion",
+            "no_rag_answer_validation",
+            "no_external_tool_execution",
+        ],
+    }
+
+    result = evidence_ai_core.verify_external_tool_evidence_envelope(envelope)
+
+    assert result["record_type"] == "external_tool_evidence_verification_result"
+    assert result["trace_id"] == "trace_public_api_001"
+    assert result["mechanical_verification_status"] == evidence_ai_core.MECHANICAL_STATUS_PASSED
+    assert result["error_count"] == 0
+
